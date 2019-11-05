@@ -61,12 +61,12 @@ except AttributeError:
 
 #include "RtpsTopics.h"
 
-bool RtpsTopics::init(std::condition_variable* cv)
+bool RtpsTopics::init(std::condition_variable* cv, std::mutex* cv_mutex, std::queue<uint8_t>* topic_queue_)
 {
 @[if recv_topics]@
     // Initialise subscribers
 @[for topic in recv_topics]@
-    if (_@(topic)_sub.init(cv)) {
+    if (_@(topic)_sub.init(@(rtps_message_id(ids, topic)), cv, cv_mutex, topic_queue_)) {
         std::cout << "@(topic) subscriber started" << std::endl;
     } else {
         std::cout << "ERROR starting @(topic) subscriber" << std::endl;
@@ -178,6 +178,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
 @[    end if]@
                 msg.serialize(scdr);
                 ret = true;
+                _@(topic)_sub.unlockMsg();
             }
         break;
 @[end for]@

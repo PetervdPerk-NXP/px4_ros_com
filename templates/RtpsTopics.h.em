@@ -55,6 +55,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 #include <fastcdr/Cdr.h>
 #include <condition_variable>
+#include <queue>
 
 @[for topic in send_topics]@
 #include "@(topic)_Publisher.h"
@@ -65,7 +66,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 class RtpsTopics {
 public:
-    bool init(std::condition_variable* cv);
+    bool init(std::condition_variable* cv, std::mutex* cv_mutex, std::queue<uint8_t>* topic_queue_);
 @[if send_topics]@
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
