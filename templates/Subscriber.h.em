@@ -86,7 +86,7 @@ class @(topic)_Subscriber
 public:
     @(topic)_Subscriber();
     virtual ~@(topic)_Subscriber();
-    bool init(uint8_t topic_ID, std::condition_variable* cv, std::mutex* cv_mutex, std::queue<uint8_t>* topic_queue_);
+    bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
     void run();
     bool hasMsg();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
@@ -133,11 +133,11 @@ private:
 @[end if]@
         std::atomic_bool has_msg;
         uint8_t topic_ID;
-        std::condition_variable* cv_msg;
-        std::mutex* cv_m; 
+        std::condition_variable* t_send_queue_cv;
+        std::mutex* t_send_queue_mutex; 
+        std::queue<uint8_t>* t_send_queue;
         std::condition_variable has_msg_cv;
-        std::mutex has_msg_m; 
-        std::queue<uint8_t>* topic_queue;
+        std::mutex has_msg_mutex; 
 
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@

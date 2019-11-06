@@ -74,12 +74,12 @@ except AttributeError:
 
 @(topic)_Subscriber::~@(topic)_Subscriber() {   Domain::removeParticipant(mp_participant);}
 
-bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* cv, std::mutex* cv_mutex, std::queue<uint8_t>* topic_queue_)
+bool @(topic)_Subscriber::init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue)
 {
     m_listener.topic_ID = topic_ID;
-    m_listener.cv_msg = cv;
-    m_listener.cv_m = cv_mutex;
-    m_listener.topic_queue = topic_queue_;
+    m_listener.t_send_queue_cv = t_send_queue_cv;
+    m_listener.t_send_queue_mutex = t_send_queue_mutex;
+    m_listener.t_send_queue = t_send_queue;
 
     // Create RTPSParticipant
     ParticipantAttributes PParam;
@@ -135,10 +135,10 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 
 void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
-        std::unique_lock<std::mutex> has_msg_lock(has_msg_m);
-        if(has_msg.load())
+        std::unique_lock<std::mutex> has_msg_lock(has_msg_mutex);
+        if(has_msg.load() == true) // Check if msg has been fetched
         {
-            has_msg_cv.wait(has_msg_lock);
+            has_msg_cv.wait(has_msg_lock); // Wait till msg has been fetched
         }
         has_msg_lock.unlock();
         
@@ -148,16 +148,14 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
         {
             if(m_info.sampleKind == ALIVE)
             {
-                std::unique_lock<std::mutex> lk(*cv_m);
+                std::unique_lock<std::mutex> lk(*t_send_queue_mutex);
             
-                // Print your structure data here.
                 ++n_msg;
-                //std::cout << "Sample received, count=" << n_msg << std::endl;
                 has_msg = true;
                 
-                topic_queue->push(topic_ID);
+                t_send_queue->push(topic_ID);
                 lk.unlock();
-                cv_msg->notify_all();
+                t_send_queue_cv->notify_one();
 
             }
         }
@@ -194,7 +192,8 @@ bool @(topic)_Subscriber::hasMsg()
 
 void @(topic)_Subscriber::unlockMsg()
 {
-    std::unique_lock<std::mutex> has_msg_lock(m_listener.has_msg_m);
+    std::unique_lock<std::mutex> has_msg_lock(m_listener.has_msg_mutex);
     m_listener.has_msg = false;
+    has_msg_lock.unlock();
     m_listener.has_msg_cv.notify_one();
 }

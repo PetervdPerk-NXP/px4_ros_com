@@ -190,9 +190,9 @@ void signal_handler(int signum)
 
 @[if recv_topics]@
 std::atomic<bool> exit_sender_thread(false);
-std::condition_variable cv_msg;
-std::mutex cv_m; 
-std::queue<uint8_t> topic_queue_;
+std::condition_variable t_send_queue_cv;
+std::mutex t_send_queue_mutex; 
+std::queue<uint8_t> t_send_queue;
 
 void t_send(void *data)
 {
@@ -201,13 +201,13 @@ void t_send(void *data)
 
     while (running && !exit_sender_thread.load())
     {
-        std::unique_lock<std::mutex> lk(cv_m);
-        while (topic_queue_.empty())
+        std::unique_lock<std::mutex> lk(t_send_queue_mutex);
+        while (t_send_queue.empty())
         {
-            cv_msg.wait(lk);
+            t_send_queue_cv.wait(lk);
         }
-        uint8_t topic_ID = topic_queue_.front();
-        topic_queue_.pop();
+        uint8_t topic_ID = t_send_queue.front();
+        t_send_queue.pop();
         lk.unlock();
         
         uint16_t header_length = transport_node->get_header_length();
@@ -276,7 +276,7 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
-    topics.init(&cv_msg, &cv_m, &topic_queue_);
+    topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
 
     running = true;
 @[if recv_topics]@
@@ -309,9 +309,9 @@ int main(int argc, char** argv)
             received = sent = total_read = total_sent = 0;
             receiving = false;
         }
-
-@[end if]@
+@[else]@
         usleep(_options.sleep_us);
+@[end if]@
     }
 @[if recv_topics]@
     exit_sender_thread = true;
