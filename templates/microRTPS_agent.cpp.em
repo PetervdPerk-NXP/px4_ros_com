@@ -202,7 +202,7 @@ void t_send(void *data)
     while (running && !exit_sender_thread.load())
     {
         std::unique_lock<std::mutex> lk(t_send_queue_mutex);
-        while (t_send_queue.empty())
+        while (t_send_queue.empty() && !exit_sender_thread.load())
         {
             t_send_queue_cv.wait(lk);
         }
@@ -315,6 +315,7 @@ int main(int argc, char** argv)
     }
 @[if recv_topics]@
     exit_sender_thread = true;
+    t_send_queue_cv.notify_one();
     sender_thread.join();
 @[end if]@
     delete transport_node;

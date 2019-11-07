@@ -88,11 +88,5 @@ private:
     @(topic)_Subscriber _@(topic)_sub;
 @[end for]@
 
-    unsigned _next_sub_idx = 0;
-    unsigned char _sub_topics[@(len(recv_topics))] = {
-@[for topic in recv_topics]@
-        @(rtps_message_id(ids, topic)), // @(topic)
-@[end for]@
-    };
 @[end if]@
 };
